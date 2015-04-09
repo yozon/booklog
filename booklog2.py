@@ -4,7 +4,8 @@ import pickle
 from PyQt5.QtCore import QFile, QIODevice, Qt, QTextStream
 from PyQt5.QtWidgets import (QDialog, QFileDialog, QGridLayout, QHBoxLayout,
         QLabel, QLineEdit, QMessageBox, QMenu, QPushButton, QTextEdit, QVBoxLayout,
-        QWidget, QSizePolicy, QMainWindow)
+        QWidget, QSizePolicy, QMainWindow, QItemEditorCreatorBase, QItemEditorFactory, QTableWidget,
+        QTableWidgetItem)
 
 
 class SortedDict(dict):
@@ -47,6 +48,12 @@ class BookLog(QWidget):
         self.oldMemo = ''
         self.currentMode = self.NavigationMode
 
+        #テーブル
+        factory = QItemEditorFactory()
+        QItemEditorFactory.setDefaultFactory(factory)
+        self.createTable()
+
+        #ラベル
         titleLabel = QLabel("書名:")
         self.titleLine = QLineEdit()
         self.titleLine.setReadOnly(True)
@@ -124,11 +131,34 @@ class BookLog(QWidget):
         mainLayout.addWidget(self.memoText, 1, 1)
         mainLayout.addLayout(buttonLayout1, 1, 2)
         mainLayout.addLayout(buttonLayout2, 2, 1)
+        table = QTableWidget(3, 3,)
+        mainLayout.addWidget(table, 3, 1)
         #mainLayout.addWidget(topFiller)
 
         self.setLayout(mainLayout)
         self.setWindowTitle("Simple Book Log")
 
+    def createTable(self):
+        tableData = [
+            ("Alice", "aa"),
+            ("Neptun", "bbb"),
+            ("Ferdinand", "cccc")
+        ]
+
+        table = QTableWidget(3, 0)
+        table.setHorizontalHeaderLabels(["Name", "Hair Color"])
+        table.verticalHeader().setVisible(False)
+        table.resize(150, 50)
+
+        for i, (name, color) in enumerate(tableData):
+            nameItem = QTableWidgetItem(name)
+            colorItem = QTableWidgetItem()
+            colorItem.setData(Qt.DisplayRole, color)
+            table.setItem(i, 0, nameItem)
+            table.setItem(i, 1, colorItem)
+
+        table.resizeColumnToContents(0)
+        table.horizontalHeader().setStretchLastSection(True)
 
     def createUI(self):
         self.setWindowTitle('Equipment Manager 0.3')
@@ -138,6 +168,8 @@ class BookLog(QWidget):
         actionChangePath = QAction(tr("Change Path"), self)
         fileMenuBar.addMenu(menuFile)
         menuFile.addAction(actionChangePath)
+
+
 
     def addContact(self):
         self.oldTitle = self.titleLine.text()
@@ -329,7 +361,18 @@ class BookLog(QWidget):
                     "There was an error opening \"%s\"" % fileTitle)
             return
 
-        pickle.dump(self.contacts, out_file)
+        for row in range(self.contacts.rowCount(QModelIndex())):
+                    pieces = []
+
+                    pieces.append(self.model.data(self.model.index(row, 0, QModelIndex()),
+                            Qt.DisplayRole))
+                    pieces.append(str(self.model.data(self.model.index(row, 1, QModelIndex()),
+                            Qt.DisplayRole)))
+                    pieces.append(self.model.data(self.model.index(row, 0, QModelIndex()),
+                            Qt.DecorationRole).name())
+
+                    f.write(QByteArray(','.join(pieces)))
+                    f.write('\n')
         out_file.close()
 
     def loadFromFile(self):
