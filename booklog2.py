@@ -48,11 +48,6 @@ class BookLog(QWidget):
         self.oldMemo = ''
         self.currentMode = self.NavigationMode
 
-        #テーブル
-        factory = QItemEditorFactory()
-        QItemEditorFactory.setDefaultFactory(factory)
-        self.createTable()
-
         #ラベル
         titleLabel = QLabel("書名:")
         self.titleLine = QLineEdit()
@@ -131,34 +126,34 @@ class BookLog(QWidget):
         mainLayout.addWidget(self.memoText, 1, 1)
         mainLayout.addLayout(buttonLayout1, 1, 2)
         mainLayout.addLayout(buttonLayout2, 2, 1)
-        table = QTableWidget(3, 3,)
-        mainLayout.addWidget(table, 3, 1)
+        #テーブル
+
+        self.table = QTableWidget(100, 2,)
+        self.table.setHorizontalHeaderLabels(["書名", "メモ"])
+        self.table.verticalHeader().setVisible(False)
+        tableData = [
+            ("qqqqqqqqqqqqqq", "aa"),
+            ("w", "bbb"),
+            ("e", "cccc")
+        ]
+        #for i, (title, memo) in enumerate(tableData):
+        i = 0
+        for title, memo in self.contacts.items():
+            titleItem = QTableWidgetItem(title)
+            memoItem = QTableWidgetItem()
+            memoItem.setData(Qt.DisplayRole, memo)
+            self.table.setItem(i, 0, titleItem)
+            self.table.setItem(i, 1, memoItem)
+            i += 1
+        #table.resize(150, 50)
+        self.table.resizeColumnToContents(0)
+        self.table.horizontalHeader().setStretchLastSection(True)
+        mainLayout.addWidget(self.table, 3, 1)
         #mainLayout.addWidget(topFiller)
 
         self.setLayout(mainLayout)
         self.setWindowTitle("Simple Book Log")
 
-    def createTable(self):
-        tableData = [
-            ("Alice", "aa"),
-            ("Neptun", "bbb"),
-            ("Ferdinand", "cccc")
-        ]
-
-        table = QTableWidget(3, 0)
-        table.setHorizontalHeaderLabels(["Name", "Hair Color"])
-        table.verticalHeader().setVisible(False)
-        table.resize(150, 50)
-
-        for i, (name, color) in enumerate(tableData):
-            nameItem = QTableWidgetItem(name)
-            colorItem = QTableWidgetItem()
-            colorItem.setData(Qt.DisplayRole, color)
-            table.setItem(i, 0, nameItem)
-            table.setItem(i, 1, colorItem)
-
-        table.resizeColumnToContents(0)
-        table.horizontalHeader().setStretchLastSection(True)
 
     def createUI(self):
         self.setWindowTitle('Equipment Manager 0.3')
@@ -346,6 +341,15 @@ class BookLog(QWidget):
 
             self.loadButton.setEnabled(True)
             self.saveButton.setEnabled(number >= 1)
+            i = 0
+            for title, memo in self.contacts.items():
+                titleItem = QTableWidgetItem(title)
+                memoItem = QTableWidgetItem()
+                memoItem.setData(Qt.DisplayRole, memo)
+                self.table.setItem(i, 0, titleItem)
+                self.table.setItem(i, 1, memoItem)
+                i += 1
+
 
     def saveToFile(self):
         fileTitle, _ = QFileDialog.getSaveFileName(self, "Save book log",
@@ -360,24 +364,12 @@ class BookLog(QWidget):
             QMessageBox.information(self, "Unable to open file",
                     "There was an error opening \"%s\"" % fileTitle)
             return
-
-        for row in range(self.contacts.rowCount(QModelIndex())):
-                    pieces = []
-
-                    pieces.append(self.model.data(self.model.index(row, 0, QModelIndex()),
-                            Qt.DisplayRole))
-                    pieces.append(str(self.model.data(self.model.index(row, 1, QModelIndex()),
-                            Qt.DisplayRole)))
-                    pieces.append(self.model.data(self.model.index(row, 0, QModelIndex()),
-                            Qt.DecorationRole).name())
-
-                    f.write(QByteArray(','.join(pieces)))
-                    f.write('\n')
+        pickle.dump(self.contacts, out_file)
         out_file.close()
 
     def loadFromFile(self):
         fileName, _ = QFileDialog.getOpenFileName(self, "Open Address Book",
-                '', "Address Book (*.abk);;All Files (*)")
+                '', "Address Book (*.bl);;All Files (*)")
 
         if not fileName:
             return
