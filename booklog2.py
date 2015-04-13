@@ -4,7 +4,7 @@ import pickle
 from PyQt5.QtCore import QFile, QIODevice, Qt, QTextStream
 from PyQt5.QtWidgets import (QDialog, QFileDialog, QGridLayout, QHBoxLayout,
         QLabel, QLineEdit, QMessageBox, QMenu, QPushButton, QTextEdit, QVBoxLayout,
-        QWidget, QSizePolicy, QMainWindow, QItemEditorCreatorBase, QItemEditorFactory, QTableWidget,
+        QWidget, QMainWindow, QItemEditorCreatorBase, QItemEditorFactory, QTableWidget,
         QTableWidgetItem)
 
 
@@ -131,11 +131,6 @@ class BookLog(QWidget):
         self.table = QTableWidget(100, 2,)
         self.table.setHorizontalHeaderLabels(["書名", "メモ"])
         self.table.verticalHeader().setVisible(False)
-        tableData = [
-            ("qqqqqqqqqqqqqq", "aa"),
-            ("w", "bbb"),
-            ("e", "cccc")
-        ]
         #for i, (title, memo) in enumerate(tableData):
         i = 0
         for title, memo in self.contacts.items():
@@ -146,13 +141,16 @@ class BookLog(QWidget):
             self.table.setItem(i, 1, memoItem)
             i += 1
         #table.resize(150, 50)
-        self.table.resizeColumnToContents(0)
+        #self.table.resizeColumnToContents(0)
         self.table.horizontalHeader().setStretchLastSection(True)
+
+        self.table.doubleClicked.connect(self.tableclick)
         mainLayout.addWidget(self.table, 3, 1)
         #mainLayout.addWidget(topFiller)
 
         self.setLayout(mainLayout)
         self.setWindowTitle("Simple Book Log")
+        self.loadFromFile('./a.bl')
 
 
     def createUI(self):
@@ -341,6 +339,7 @@ class BookLog(QWidget):
 
             self.loadButton.setEnabled(True)
             self.saveButton.setEnabled(number >= 1)
+            #テーブルの更新
             i = 0
             for title, memo in self.contacts.items():
                 titleItem = QTableWidgetItem(title)
@@ -367,12 +366,12 @@ class BookLog(QWidget):
         pickle.dump(self.contacts, out_file)
         out_file.close()
 
-    def loadFromFile(self):
-        fileName, _ = QFileDialog.getOpenFileName(self, "Open Address Book",
-                '', "Address Book (*.bl);;All Files (*)")
+    def loadFromFile(self, fileName= None):
+
 
         if not fileName:
-            return
+            fileName, _ = QFileDialog.getOpenFileName(self, "Open Address Book",
+                '', "Address Book (*.bl);;All Files (*)")
 
         try:
             in_file = open(str(fileName), 'rb')
@@ -471,6 +470,31 @@ class BookLog(QWidget):
         self.formatMenu.addSeparator()
         self.formatMenu.addAction(self.setLineSpacingAct)
         self.formatMenu.addAction(self.setParagraphSpacingAct)
+
+    def tableclick(self, mi):
+        row = mi.row()
+        column = mi.column()
+        #QMessageBox.information(self, "Export Successful",
+        #        "%d x %d" % (row, column))
+        title = self.titleLine.text()
+        it = iter(self.contacts)
+
+        try:
+            n = 0
+            while True:
+
+                next_title, next_memo = it.next()
+
+                if row == n:
+
+                    break
+                n += 1
+        except StopIteration:
+            next_title, next_memo = iter(self.contacts).next()
+
+        self.titleLine.setText(next_title)
+        self.memoText.setText(next_memo)
+
 
 
 class FindDialog(QDialog):
