@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import pickle
+import re
 
 from PyQt5.QtCore import QFile, QIODevice, Qt, QTextStream
 from PyQt5.QtWidgets import (QDialog, QFileDialog, QGridLayout, QHBoxLayout,
@@ -52,6 +53,8 @@ class BookLog(QWidget):
         titleLabel = QLabel("書名:")
         self.titleLine = QLineEdit()
         self.titleLine.setReadOnly(True)
+
+        dokuryoLabel = QLabel("読了日:")
 
         memoLabel = QLabel("メモ:")
         self.memoText = QTextEdit()
@@ -284,9 +287,18 @@ class BookLog(QWidget):
         if self.dialog.exec_() == QDialog.Accepted:
             contactTitle = self.dialog.getFindText()
 
-            if contactTitle in self.contacts:
-                self.titleLine.setText(contactTitle)
-                self.memoText.setText(self.contacts[contacttitle])
+            found = False
+            for this_title, this_memo in self.contacts:
+            #    if contactTitle in this_title:
+                if re.search(contactTitle, this_title):
+                    found = True
+                    break
+
+
+
+            if found:
+                self.titleLine.setText(this_title)
+                self.memoText.setText(self.contacts[this_title])
             else:
                 QMessageBox.information(self, "Contact Not Found",
                         "Sorry, \"%s\" is not in your address book." % contactTitle)
