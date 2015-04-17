@@ -6,7 +6,7 @@ from PyQt5.QtCore import QFile, QIODevice, Qt, QTextStream
 from PyQt5.QtWidgets import (QDialog, QFileDialog, QGridLayout, QHBoxLayout,
         QLabel, QLineEdit, QMessageBox, QMenu, QPushButton, QTextEdit, QVBoxLayout,
         QWidget, QMainWindow, QItemEditorCreatorBase, QItemEditorFactory, QTableWidget,
-        QTableWidgetItem)
+        QTableWidgetItem, QDateEdit, QCheckBox)
 
 
 class SortedDict(dict):
@@ -55,10 +55,20 @@ class BookLog(QWidget):
         self.titleLine.setReadOnly(True)
 
         dokuryoLabel = QLabel("読了日:")
+        self.dokuryodate = QDateEdit()
+        self.dokuryodate.setReadOnly(True)
+
 
         memoLabel = QLabel("メモ:")
         self.memoText = QTextEdit()
         self.memoText.setReadOnly(True)
+
+        isbnLabel = QLabel("ISBN:")
+        self.isbnLine = QLineEdit()
+        self.isbnLine.setReadOnly(True)
+
+        shoziflag = QLabel("所持:")
+        self.shoziflag = QCheckBox()
 
         self.addButton = QPushButton("&追加")
         self.addButton.show()
@@ -127,8 +137,14 @@ class BookLog(QWidget):
         mainLayout.addWidget(self.titleLine, 0, 1)
         mainLayout.addWidget(memoLabel, 1, 0, Qt.AlignTop)
         mainLayout.addWidget(self.memoText, 1, 1)
+        mainLayout.addWidget(dokuryoLabel, 2, 0)
+        mainLayout.addWidget(self.dokuryodate, 2, 1)
+        mainLayout.addWidget(isbnLabel, 3, 0)
+        mainLayout.addWidget(self.isbnLine, 3, 1)
+        mainLayout.addWidget(shoziflag, 4, 0)
+        mainLayout.addWidget(self.shoziflag, 4, 1)
         mainLayout.addLayout(buttonLayout1, 1, 2)
-        mainLayout.addLayout(buttonLayout2, 2, 1)
+        mainLayout.addLayout(buttonLayout2, 5, 1)
         #テーブル
 
         self.table = QTableWidget(100, 2,)
@@ -148,12 +164,12 @@ class BookLog(QWidget):
         self.table.horizontalHeader().setStretchLastSection(True)
 
         self.table.doubleClicked.connect(self.tableclick)
-        mainLayout.addWidget(self.table, 3, 1)
+        mainLayout.addWidget(self.table, 6, 1)
         #mainLayout.addWidget(topFiller)
 
         self.setLayout(mainLayout)
         self.setWindowTitle("Simple Book Log")
-        self.loadFromFile('./a.bl')
+        #self.loadFromFile('./a.bl')
 
 
     def createUI(self):
@@ -179,6 +195,9 @@ class BookLog(QWidget):
     def editContact(self):
         self.oldTitle = self.titleLine.text()
         self.oldMemo = self.memoText.toPlainText()
+        self.olddokuryodate = self.dokuryodate.text()
+        self.oldisbn = self.isbnLine.text()
+        self.oldshoziflag = self.shoziflag.isChecked()
 
         self.updateInterface(self.EditingMode)
 
@@ -215,7 +234,7 @@ class BookLog(QWidget):
             elif self.oldMemo != memo:
                 QMessageBox.information(self, "編集しました",
                         "\"%s\"は編集されました。" % title)
-                self.contacts[title] = memo
+                self.contacts[title] = {memo:memo, dokuryodate:dokuryodate, shoziflag:shoziflag, isbn:isbn }
 
         self.updateInterface(self.NavigationMode)
     # ボタンの処理
@@ -251,7 +270,7 @@ class BookLog(QWidget):
                 this_title, _ = it.next()
 
                 if this_title == title:
-                    next_title, next_memo = it.next()
+                    next_title, next_memo, next_date = it.next()
                     break
         except StopIteration:
             next_title, next_memo = iter(self.contacts).next()
@@ -400,9 +419,9 @@ class BookLog(QWidget):
                     "The file you are attempting to open contains no "
                     "contacts.")
         else:
-            for title, memo in self.contacts:
+            for title, obj in self.contacts:
                 self.titleLine.setText(title)
-                self.memoText.setText(memo)
+                self.memoText.setText(obj['memo'])
 
         self.updateInterface(self.NavigationMode)
 
