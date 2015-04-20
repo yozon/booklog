@@ -2,7 +2,7 @@
 import pickle
 import re
 
-from PyQt5.QtCore import QFile, QIODevice, Qt, QTextStream
+from PyQt5.QtCore import QFile, QIODevice, Qt, QTextStream, QDate
 from PyQt5.QtWidgets import (QDialog, QFileDialog, QGridLayout, QHBoxLayout,
         QLabel, QLineEdit, QMessageBox, QMenu, QPushButton, QTextEdit, QVBoxLayout,
         QWidget, QMainWindow, QItemEditorCreatorBase, QItemEditorFactory, QTableWidget,
@@ -47,6 +47,9 @@ class BookLog(QWidget):
         self.contacts = SortedDict()
         self.oldTitle = ''
         self.oldMemo = ''
+        self.oldShoziflag = False
+        self.oldIsbn = ''
+        self.oldDokuryodate = QDate()
         self.currentMode = self.NavigationMode
 
         #ラベル
@@ -135,29 +138,36 @@ class BookLog(QWidget):
         mainLayout = QGridLayout()
         mainLayout.addWidget(titleLabel, 0, 0)
         mainLayout.addWidget(self.titleLine, 0, 1)
-        mainLayout.addWidget(memoLabel, 1, 0, Qt.AlignTop)
-        mainLayout.addWidget(self.memoText, 1, 1)
+        mainLayout.addWidget(memoLabel, 3, 0, Qt.AlignTop)
+        mainLayout.addWidget(self.memoText, 3, 1)
         mainLayout.addWidget(dokuryoLabel, 2, 0)
         mainLayout.addWidget(self.dokuryodate, 2, 1)
-        mainLayout.addWidget(isbnLabel, 3, 0)
-        mainLayout.addWidget(self.isbnLine, 3, 1)
+        mainLayout.addWidget(isbnLabel, 1, 0)
+        mainLayout.addWidget(self.isbnLine, 1, 1)
         mainLayout.addWidget(shoziflag, 4, 0)
         mainLayout.addWidget(self.shoziflag, 4, 1)
-        mainLayout.addLayout(buttonLayout1, 1, 2)
+        mainLayout.addLayout(buttonLayout1, 6, 2)
         mainLayout.addLayout(buttonLayout2, 5, 1)
         #テーブル
 
-        self.table = QTableWidget(100, 2,)
-        self.table.setHorizontalHeaderLabels(["書名", "メモ"])
+        self.table = QTableWidget(100, 5,)
+        self.table.setHorizontalHeaderLabels(["書名", "ISBN", "読了日", "メモ", "所持"])
         self.table.verticalHeader().setVisible(False)
         #for i, (title, memo) in enumerate(tableData):
         i = 0
-        for title, memo in self.contacts.items():
+        for title, obj in self.contacts.items():
             titleItem = QTableWidgetItem(title)
-            memoItem = QTableWidgetItem()
+           # memoItem = QTableWidgetItem()
             memoItem.setData(Qt.DisplayRole, memo)
+            if obj['shoziflag'] == True:
+                    maru = '○'
+            else:
+                    maru = ''
             self.table.setItem(i, 0, titleItem)
-            self.table.setItem(i, 1, memoItem)
+            self.table.setItem(i, 1, QTableWidgetItem(obj['isbn']))
+            self.table.setItem(i, 2, QTableWidgetItem(obj['dokuryodate']))
+            self.table.setItem(i, 3, QTableWidgetItem(obj['memo']))
+            self.table.setItem(i, 4, QTableWidgetItem(maru))
             i += 1
         #table.resize(150, 50)
         #self.table.resizeColumnToContents(0)
@@ -169,7 +179,7 @@ class BookLog(QWidget):
 
         self.setLayout(mainLayout)
         self.setWindowTitle("Simple Book Log")
-        #self.loadFromFile('./a.bl')
+        self.loadFromFile('./a.bl')
 
 
     def createUI(self):
@@ -186,24 +196,29 @@ class BookLog(QWidget):
     def addContact(self):
         self.oldTitle = self.titleLine.text()
         self.oldMemo = self.memoText.toPlainText()
+        self.oldIsbn = self.isbnLine.text()
 
         self.titleLine.clear()
         self.memoText.clear()
+        self.isbnLine.clear()
 
         self.updateInterface(self.AddingMode)
 
     def editContact(self):
         self.oldTitle = self.titleLine.text()
         self.oldMemo = self.memoText.toPlainText()
-        self.olddokuryodate = self.dokuryodate.text()
-        self.oldisbn = self.isbnLine.text()
-        self.oldshoziflag = self.shoziflag.isChecked()
+        self.oldDokuryodate = self.dokuryodate.text()
+        self.oldIsbn = self.isbnLine.text()
+        self.oldShoziflag = self.shoziflag.isChecked()
 
         self.updateInterface(self.EditingMode)
 
     def submitContact(self):
         title = self.titleLine.text()
         memo = self.memoText.toPlainText()
+        isbn = self.isbnLine.text()
+        dokuryodate = self.dokuryodate.text()
+        shoziflag = self.shoziflag.isChecked()
 
         if title == "" or memo == "":
             QMessageBox.information(self, "Empty Field",
@@ -212,7 +227,7 @@ class BookLog(QWidget):
 
         if self.currentMode == self.AddingMode:
             if title not in self.contacts:
-                self.contacts[title] = memo
+                self.contacts[title] = {'memo':memo, 'dokuryodate':dokuryodate, 'isbn':isbn, 'shoziflag':shoziflag}
                 QMessageBox.information(self, "追加しました",
                         "\"%s\" は追加されました。" % title)
             else:
@@ -241,6 +256,9 @@ class BookLog(QWidget):
     def cancel(self):
         self.titleLine.setText(self.oldTitle)
         self.memoText.setText(self.oldMemo)
+        self.dokuryodate.setDate(self.oldDokuryodate)
+        self.shoziflag.setChecked(self.oldShoziflag)
+        self.isbnLine.setText(self.oldIsbn)
         self.updateInterface(self.NavigationMode)
 
     def removeContact(self):
@@ -318,6 +336,9 @@ class BookLog(QWidget):
             if found:
                 self.titleLine.setText(this_title)
                 self.memoText.setText(self.contacts[this_title])
+                self.isbnLine.setText(self.contacts[this_title])
+                self.dokuryodate.setDate(self.contacts[this_title])
+                self.shoziflag.setChecked(self.contacts[this_title])
             else:
                 QMessageBox.information(self, "Contact Not Found",
                         "Sorry, \"%s\" is not in your address book." % contactTitle)
@@ -331,6 +352,8 @@ class BookLog(QWidget):
         if self.currentMode in (self.AddingMode, self.EditingMode):
             self.titleLine.setReadOnly(False)
             self.titleLine.setFocus(Qt.OtherFocusReason)
+            self.isbnLine.setReadOnly(False)
+            self.dokuryodate.setReadOnly(False)
             self.memoText.setReadOnly(False)
 
             self.addButton.setEnabled(False)
@@ -351,9 +374,14 @@ class BookLog(QWidget):
             if not self.contacts:
                 self.titleLine.clear()
                 self.memoText.clear()
+                self.dokuryodate.clear()
+                self.isbnLine.clear()
 
             self.titleLine.setReadOnly(True)
             self.memoText.setReadOnly(True)
+            self.dokuryodate.setReadOnly(True)
+            self.shoziflag
+            self.isbnLine.setReadOnly(True)
             self.addButton.setEnabled(True)
 
             number = len(self.contacts)
@@ -372,12 +400,21 @@ class BookLog(QWidget):
             self.saveButton.setEnabled(number >= 1)
             #テーブルの更新
             i = 0
-            for title, memo in self.contacts.items():
+            for title, obj in self.contacts.items():
                 titleItem = QTableWidgetItem(title)
                 memoItem = QTableWidgetItem()
-                memoItem.setData(Qt.DisplayRole, memo)
+                memoItem.setData(Qt.DisplayRole, obj['memo'])
+                if obj['shoziflag'] == True:
+                    maru = '○'
+                else:
+                    maru = ''
+
                 self.table.setItem(i, 0, titleItem)
-                self.table.setItem(i, 1, memoItem)
+                self.table.setItem(i, 1, QTableWidgetItem(obj['isbn']))
+                self.table.setItem(i, 2, QTableWidgetItem(obj['dokuryodate']))
+                self.table.setItem(i, 3, QTableWidgetItem(obj['memo']))
+                self.table.setItem(i, 4, QTableWidgetItem(maru))
+
                 i += 1
 
 
@@ -420,8 +457,12 @@ class BookLog(QWidget):
                     "contacts.")
         else:
             for title, obj in self.contacts:
+                date = QDate.fromString(obj['dokuryodate'])
                 self.titleLine.setText(title)
                 self.memoText.setText(obj['memo'])
+                self.shoziflag.setChecked(obj['shoziflag'])
+                self.isbnLine.setText(obj['isbn'])
+                self.dokuryodate.setDate(date)
 
         self.updateInterface(self.NavigationMode)
 
@@ -514,17 +555,21 @@ class BookLog(QWidget):
             n = 0
             while True:
 
-                next_title, next_memo = it.next()
+                next_title, next_obj = it.next()
+
 
                 if row == n:
 
                     break
                 n += 1
         except StopIteration:
-            next_title, next_memo = iter(self.contacts).next()
+            next_title, next_obj = iter(self.contacts).next()
 
         self.titleLine.setText(next_title)
-        self.memoText.setText(next_memo)
+        self.memoText.setText(next_obj['memo'])
+        self.isbnLine.setText(next_obj['isbn'])
+        self.dokuryodate.setDate(next_obj['dokuryodate'])
+        self.shoziflag.setChecked(next_obj['shoziflag'])
 
 
 
