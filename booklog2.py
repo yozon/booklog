@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import pickle
+import pickle, csv
 import re
 
 from PyQt5.QtCore import QFile, QIODevice, Qt, QTextStream, QDate
@@ -154,10 +154,11 @@ class BookLog(QWidget):
         self.table.setHorizontalHeaderLabels(["書名", "ISBN", "読了日", "メモ", "所持"])
         self.table.verticalHeader().setVisible(False)
         #for i, (title, memo) in enumerate(tableData):
+
         i = 0
         for title, obj in self.contacts.items():
             titleItem = QTableWidgetItem(title)
-           # memoItem = QTableWidgetItem()
+            memoItem = QTableWidgetItem()
             memoItem.setData(Qt.DisplayRole, memo)
             if obj['shoziflag'] == True:
                     maru = '○'
@@ -179,6 +180,7 @@ class BookLog(QWidget):
 
         self.setLayout(mainLayout)
         self.setWindowTitle("Simple Book Log")
+        #self.csvImport()
         self.loadFromFile('./a.bl')
 
 
@@ -508,6 +510,17 @@ class BookLog(QWidget):
 
         QMessageBox.information(self, "Export Successful",
                 "\"%s\" has been exported as a vCard." % name)
+    def csvImport(self):
+        with open('MediaMarkerExport.csv', newline='', encoding='utf-8') as f:
+            reader = csv.reader(f)
+            for r in reader:
+                if r[2] == 1:
+                    flag = True
+                else:
+                    flag = False
+                self.contacts[r[0]] = {'isbn':r[1], 'dokuryodate':r[3].replace('-', '/'), 'shoziflag':flag, 'memo':''}
+        aa = 0
+
 
     def createMenus(self):
         self.fileMenu = self.menuBar().addMenu("&File")
@@ -556,8 +569,6 @@ class BookLog(QWidget):
             while True:
 
                 next_title, next_obj = it.next()
-
-
                 if row == n:
 
                     break
