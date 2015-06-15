@@ -60,14 +60,18 @@ for i in dlist:
 with open('tw.tw', mode='rb') as f:
     oldtweets = pickle.load(f)
 
-def loop():
-    for i in oldtweets:
-        if i['str'] < tweetdata[-1]['str']:
-            tweetdata += oldtweets[i:]
-            return
-        else:
-            pass
-
+flag = False
+count = 0
+for i in oldtweets:
+    if i['id'] < tweetdata[-1]['id']:
+        tweetdata = tweetdata + oldtweets[count:]
+        flag = True
+    else:
+        pass
+    count += 1
+    if flag:
+        break
+print(len(tweetdata))
 with open('tw.tw', mode='wb') as f:
     pickle.dump(tweetdata, f)
 
