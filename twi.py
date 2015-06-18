@@ -4,7 +4,6 @@ import pickle
 import re
 import datetime
 import csv
-import os
 from requests_oauthlib import OAuth1
 
 api_key = "6FPsRuJagpscBpj8Nsm9w"
@@ -25,16 +24,17 @@ if res.status_code == 200:
 else:
     print("Error: %d" % res.status_code)
 tweetdata = res.json()['statuses']
-# a = data[0].keys()
-# print(a)
-# 除外候補
+# print(tweetdata[0].keys())
+
+# 除外ワード
 ngsource = ['IFTTT', 'dlvr.it', 'twittbot.net', 'twitterfeed', 'LinkedIn', 'connpass']
 ngword = ['楽天', 'ヤフオク', '【定期】', 'item.rakuten.co.jp', 'shopstyle.com', "#fashion", "#Fashion", "adf.ly"]
+ngname = 'ython'
 whitelist = ["pypi_updates"]
+
+# 除外候補選定
 dlist = []
 dcount = 0
-
-# 除外候補
 for i in tweetdata:
     for ngs in ngsource:
         if ngs in i['source']:
@@ -46,7 +46,7 @@ for i in tweetdata:
         dlist.append(dcount)
     elif re.search(r"@[^\s]*python[^\s]*", i['text'], re.I):
         dlist.append(dcount)
-    elif 'ython' in i['user']['screen_name']:
+    elif ngname in i['user']['screen_name']:
         dlist.append(dcount)
     dcount += 1
 
@@ -54,12 +54,12 @@ for i in tweetdata:
 dlist = list(set(dlist))  # 重複削除
 dlist.reverse()
 deltweets = []
-try:
-    for i in dlist:
+for i in dlist:
+    try:
         deltweets.append(tweetdata[i])  # 削除したツイートを保存
-        del tweetdata[i]
-except:
-    pass
+    except:
+        print("????????")
+    del tweetdata[i]
 
 with open('tw.tw', mode='rb') as f:
     oldtweets = pickle.load(f)
@@ -80,7 +80,7 @@ print(len(tweetdata))
 with open('tw.tw', mode='wb') as f:
     pickle.dump(tweetdata, f)
 
-"""
+"""cvs
 paramnames = "id,profile_image,text,screen_name,created_at,source\n"
 csvdata = paramnames
 
@@ -102,8 +102,7 @@ for tw in tweetdata:
     elif datetime.datetime.date(tw['created_at']) < yesterday - datetime.timedelta(1):
         break
 
-
-# htmlへ加工
+# htmlへ加工と書き込み
 yesterday_tweets.reverse()
 html_body = "<html><body><table>"
 for tw in yesterday_tweets:
@@ -122,7 +121,8 @@ html_body += "</table></body></html>"
 with open("./" + str(yesterday) + ".html", mode='w', encoding='utf-8') as f:
     f.write(html_body)
 
+# 確認用
 for tw in yesterday_tweets:
     print(tw['text'], "||", tw['user']['screen_name'], "||", re.sub(r"<[^>]*?>", "", tw['source']), "||", tw['created_at'])
-print("-----------\n", len(dlist))
+print("-----------\n", len(yesterday_tweets))
 

@@ -107,7 +107,7 @@ class BookLog(QWidget):
         self.submitButton.clicked.connect(self.submitContact)
         self.editButton.clicked.connect(self.editContact)
         self.removeButton.clicked.connect(self.removeContact)
-        self.findButton.clicked.connect(self.findContact)
+        #self.findButton.clicked.connect(self.findContact)
         self.cancelButton.clicked.connect(self.cancel)
         self.nextButton.clicked.connect(self.next)
         self.previousButton.clicked.connect(self.previous)
@@ -320,7 +320,7 @@ class BookLog(QWidget):
         self.titleLine.setText(prev_title)
         self.memoText.setText(prev_memo)
 
-    def findContact(self):
+    def Contact(self):
         self.dialog.show()
 
         if self.dialog.exec_() == QDialog.Accepted:
