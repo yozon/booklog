@@ -4,6 +4,7 @@ import pickle
 import re
 import datetime
 import csv
+import os
 from requests_oauthlib import OAuth1
 
 api_key = "6FPsRuJagpscBpj8Nsm9w"
@@ -13,7 +14,7 @@ token_secret = "ZNpk7wTFPh62IktKi9MdK54ir3XULkz8xCX0orJ06jGp7"
 
 auth = OAuth1(api_key, api_secret, token, token_secret)
 
-query = "python exclude%3Aretweets -source%3Atwitterfeed -monty -lang%3Aru -from%3Apython_octopus"
+query = "python exclude%3Aretweets -source%3A""IFTTT"" -monty -lang%3Aru -from%3Apython_octopus"
 
 url = "https://api.twitter.com/1.1/search/tweets.json?&q=" + query
 params = {'count': 200, 'include_rts': False, 'result_type': 'recent', 'include_entities': True}
@@ -28,7 +29,8 @@ tweetdata = res.json()['statuses']
 # print(a)
 # 除外候補
 ngsource = ['IFTTT', 'dlvr.it', 'twittbot.net', 'twitterfeed', 'LinkedIn', 'connpass']
-ngword = ['楽天', '【定期】', 'item.rakuten.co.jp', 'shopstyle.com', "#fashion", "#Fashion"]
+ngword = ['楽天', 'ヤフオク', '【定期】', 'item.rakuten.co.jp', 'shopstyle.com', "#fashion", "#Fashion", "adf.ly"]
+whitelist = ["pypi_updates"]
 dlist = []
 dcount = 0
 
@@ -52,14 +54,17 @@ for i in tweetdata:
 dlist = list(set(dlist))  # 重複削除
 dlist.reverse()
 deltweets = []
-for i in dlist:
-    deltweets.append(tweetdata[i])  # 削除したツイートを保存
-    del tweetdata[i]
-
+try:
+    for i in dlist:
+        deltweets.append(tweetdata[i])  # 削除したツイートを保存
+        del tweetdata[i]
+except:
+    pass
 
 with open('tw.tw', mode='rb') as f:
     oldtweets = pickle.load(f)
 
+# 保存していたツイートと取得したツイートを結合する
 flag = False
 count = 0
 for i in oldtweets:
@@ -86,26 +91,38 @@ with open('tweets.csv', mode='w', encoding='utf-8') as f:
  f.write(csvdata)
 """
 
-# htmlへ加工
+yesterday = datetime.date.today() - datetime.timedelta(1)
 
-tweetdata.reverse()
-# lasttweet = "<!-- "+tweetdata[0]['id']+" -->\n"
-html_body = ""
+# 昨日のツイートを選別
+yesterday_tweets = []
 for tw in tweetdata:
+    tw['created_at'] = datetime.datetime.strptime(tw['created_at'], '%a %b %d %H:%M:%S +0000 %Y') + datetime.timedelta(hours=9)
+    if datetime.datetime.date(tw['created_at']) == yesterday:
+        yesterday_tweets.append(tw)
+    elif datetime.datetime.date(tw['created_at']) < yesterday - datetime.timedelta(1):
+        break
+
+
+# htmlへ加工
+yesterday_tweets.reverse()
+html_body = "<html><body><table>"
+for tw in yesterday_tweets:
     twtext = re.sub(r"(https?://t.co/[a-zA-Z0-9]*)", "<a href=\"\g<1>\">\g<1></a>", tw['text'])
     twtext = re.sub(r"@([a-zA-Z0-9\_]*)", "@<a href=\"http://twitter.com/\g<1>/with_replies\">\g<1></a>", twtext)
-    twtext = re.sub(r"#([^\s]*)", "<a href=\"https://twitter.com/search?q=%23\g<1>\">#\g<1></a>", twtext)
+    twtext = re.sub(r"#([a-zA-Z0-9\_]*)", "<a href=\"https://twitter.com/search?q=%23\g<1>\">#\g<1></a>", twtext)
     twuser = "<a href=\"http://twitter.com/" + tw['user']['screen_name'] + "/with_replies\">" + tw['user'][
         'screen_name'] + "</a>"
-    twdate = datetime.datetime.strptime(tw['created_at'], '%a %b %d %H:%M:%S +0000 %Y') + datetime.timedelta(hours=9)
-    twdate = "<a href=\"http://twitter.com/%s/status/%s\">%s</a>" % (
-    tw['user']['screen_name'], tw['id_str'], twdate.strftime('%m/%d %H:%M:%S'))
-    html_body += "<tr><td><img src=\"%s\"></td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>" % (tw['user']['profile_image_url'], twtext, twuser, twdate, tw['source'])
-html_body = "<html><body><table>"+html_body+"</table></body></html>"
+    # twdate = datetime.datetime.strptime(tw['created_at'], '%a %b %d %H:%M:%S +0000 %Y') + datetime.timedelta(hours=9)
+    html_twdate = "<a href=\"http://twitter.com/%s/status/%s\">%s</a>" % (
+    tw['user']['screen_name'], tw['id_str'], tw['created_at'].strftime('%m/%d %H:%M:%S'))
+    html_body += "<tr><td><img src=\"%s\"></td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>"\
+                 % (tw['user']['profile_image_url'], twtext, twuser, html_twdate, tw['source'])
+html_body += "</table></body></html>"
 
-with open('index.html', mode='w', encoding='utf-8') as f:
+with open("./" + str(yesterday) + ".html", mode='w', encoding='utf-8') as f:
     f.write(html_body)
 
-for tw in deltweets:
-    print(tw['text'], "||", tw['user']['screen_name'], "||", re.sub(r"<[^>]*?>", "", tw['source']))
+for tw in yesterday_tweets:
+    print(tw['text'], "||", tw['user']['screen_name'], "||", re.sub(r"<[^>]*?>", "", tw['source']), "||", tw['created_at'])
 print("-----------\n", len(dlist))
+
