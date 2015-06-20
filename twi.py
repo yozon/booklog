@@ -4,6 +4,7 @@ import pickle
 import re
 import datetime
 import csv
+import os
 from requests_oauthlib import OAuth1
 
 api_key = "6FPsRuJagpscBpj8Nsm9w"
@@ -30,7 +31,7 @@ tweetdata = res.json()['statuses']
 ngsource = ['IFTTT', 'dlvr.it', 'twittbot.net', 'twitterfeed', 'LinkedIn', 'connpass']
 ngword = ['楽天', 'ヤフオク', '【定期】', 'item.rakuten.co.jp', 'shopstyle.com', "#fashion", "#Fashion", "adf.ly"]
 ngname = 'ython'
-whitelist = ["pypi_updates"]
+# whitelist = ["pypi_updates"]
 
 # 除外候補選定
 dlist = []
@@ -118,11 +119,39 @@ for tw in yesterday_tweets:
                  % (tw['user']['profile_image_url'], twtext, twuser, html_twdate, tw['source'])
 html_body += "</table></body></html>"
 
-with open("./" + str(yesterday) + ".html", mode='w', encoding='utf-8') as f:
+with open("./twi/" + str(yesterday) + ".html", mode='w', encoding='utf-8') as f:
     f.write(html_body)
 
-# 確認用
-for tw in yesterday_tweets:
-    print(tw['text'], "||", tw['user']['screen_name'], "||", re.sub(r"<[^>]*?>", "", tw['source']), "||", tw['created_at'])
-print("-----------\n", len(yesterday_tweets))
+# feed(atom)の作成
+header = "<?xml version='1.0' encoding='UTF-8'?>\n"
+url = "http://aaa.jp/"
+feed_link = "<feed xmlns=" + url + "feed.atom:lang='ja'>\n"
+title = "<title>twitter search feed</title>\n<link rel=\"self\" href=\"" + url + "\">\n"
+author = "<author><name>John</name></author>\n"
+feed_id = "<id>tag:twi.py,2015:01</id>\n"
 
+file_name = os.listdir("./twi/")
+sorted(file_name)
+entry = ""
+for i in file_name:
+   try:
+       entry_link = url + i
+       entry_title = i.replace(".html", "")
+       entry_date = entry_title + "T16:00:00+09:00"
+       entry_id = "tag:twi.py," + entry_title
+       entry += "<entry>\n<title>" + entry_title + "</title>\n" + "<link href=\"" + entry_link + "\"/>\n" +\
+               "<id>" + entry_id + "</id>\n" + "<publised>" + entry_date + "</publised>\n" + "</entry>\n"
+   except:
+       pass
+
+feed_updated = "<publised>" + entry_date + "</publised>\n"
+feed = header + feed_link + title + feed_updated + author + feed_id + entry + "</feed>"
+
+with open('./feed.xml', mode='w', encoding='UTF-8') as f:
+    f.write(feed)
+
+# 確認用
+for tw in deltweets:
+    print(tw['text'], "||", tw['user']['screen_name'], "||", re.sub(r"<[^>]*?>", "", tw['source']), "||", \
+          datetime.datetime.strptime(tw['created_at'], '%a %b %d %H:%M:%S +0000 %Y') + datetime.timedelta(hours=9))
+print("-----------\n", len(deltweets))
