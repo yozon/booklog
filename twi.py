@@ -1,10 +1,8 @@
 # encoding: utf-8
 import requests
-import pickle
 import re
 import datetime
 import time
-import csv
 import os
 import pprint
 import configparser
@@ -20,7 +18,7 @@ token_secret = config.get('api_key', 'token_secret')
 
 auth = OAuth1(api_key, api_secret, token, token_secret)
 
-query = "python exclude%3Aretweets -source%3A""IFTTT"" -monty -lang%3Aru -from%3Apython_octopus"
+query = "python exclude%3Aretweets lang%3Aja"
 
 url = "https://api.twitter.com/1.1/search/tweets.json?&q=" + query
 params = {'count': 100, 'include_rts': False, 'result_type': 'recent', 'include_entities': True}
@@ -30,27 +28,25 @@ if res.status_code == 200:
     print("OK")
 else:
     print("Error: %d" % res.status_code)
+    if res.status_code == 429:
+        rate = requests.get(url="https://api.twitter.com/1.1/application/rate_limit_status.json?", auth=auth).json()
+        tm = time.localtime(rate['resources']['search']['/search/tweets']['reset'])
+        print("Reset Time  {}:{}".format(tm.tm_hour, tm.tm_min))
 tweetdata = res.json()['statuses']
 # pprint.pprint(tweetdata[0])
-if not os.path.exists('./tw.tw') :
-    with open('./tw.tw', mode='wb') as f:
-        pickle.dump(tweetdata, f)
-
-with open('./tw.tw', mode='rb') as f:
-    oldtweets = pickle.load(f)
-    gottweets = len(oldtweets)
 
 yesterday = datetime.date.today() - datetime.timedelta(1)
 maxid = 0
-gettweets = 0
 lasttweetday = datetime.datetime.date(datetime.datetime.strptime(tweetdata[-1]['created_at'],
                                   '%a %b %d %H:%M:%S +0000 %Y') + datetime.timedelta(hours=9))
 while True:
+    lasttweetday = datetime.datetime.date(datetime.datetime.strptime(tweetdata[-1]['created_at'],
+                                  '%a %b %d %H:%M:%S +0000 %Y') + datetime.timedelta(hours=9))
     if len(tweetdata) == 0:
         break
     if lasttweetday < yesterday:
         break
-    elif oldtweets[0]['id'] < tweetdata[-1]['id']:
+    elif lasttweetday >= yesterday:
         maxid = tweetdata[-1]['id']
         params['max_id'] = maxid - 1
         res = requests.get(url, auth=auth, params=params)
@@ -58,25 +54,18 @@ while True:
     else:
         break
 
+gettweets = len(tweetdata)
+
 # 除外ワード
 ngsource = config.get('ng', 'ngsource').split(",")
 ngword = config.get('ng', 'ngword').split(",")
 ngname = 'ython'
 # whitelist = ["pypi_updates"]
 
-# tweetデータの削減と除外候補選定
+# 除外候補選定
 dlist = []
 dcount = 0
-c = 0
 for i in tweetdata:
-    if oldtweets[0]['id'] == tweetdata[0]['id']:
-        tweetdata = []
-        break
-    elif oldtweets[0]['id'] > i['id']:
-        gettweets = len(tweetdata[:c-1])
-        tweetdata = tweetdata[:c-1]
-        break
-    c += 1
     # 除外候補
     for ngs in ngsource:
         if ngs in i['source']:
@@ -103,16 +92,6 @@ for i in dlist:
         del tweetdata[i]
     except:
         print("????????")
-
-# 保存していたツイートと取得したツイートを結合する
-tweetdata = tweetdata + oldtweets
-
-# 5000以上たまったら古いツイートを削除
-if len(tweetdata) > 5000:
-    del tweetdata[4999:]
-
-with open('tw.tw', mode='wb') as f:
-    pickle.dump(tweetdata, f)
 
 # 昨日のツイートを選別
 yesterday_tweets = []
@@ -173,13 +152,13 @@ with open('./feed.xml', mode='w', encoding='UTF-8') as f:
 """
 # 確認用
 for tw in deltweets[:100]:
-    print(tw['text'], "||", tw['user_screen_name'], "||", re.sub(r"<[^>]*?>", "", tw['source']), "||",
+    print(tw['text'] + "||", tw['user_screen_name'] + "||", re.sub(r"<[^>]*?>", "", tw['source']) + "||",
           tw['created_at'])
 """
 print("-----------------------------------------")
 print("get " + str(gettweets))
 print("del " + str(len(deltweets)))
-print("tweets " + str(len(tweetdata)) + " 差分+ " + str(len(tweetdata) - gottweets))
+print("tweets " + str(len(tweetdata)))
 rate = requests.get(url="https://api.twitter.com/1.1/application/rate_limit_status.json?", auth=auth).json()
 print("api limit {} / {}".format(rate['resources']['search']['/search/tweets']['remaining'],
                              rate['resources']['search']['/search/tweets']['limit']))
