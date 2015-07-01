@@ -15,10 +15,9 @@ api_key = config.get('api_key', 'api_key')
 api_secret = config.get('api_key', 'api_secret')
 token = config.get('api_key', 'token')
 token_secret = config.get('api_key', 'token_secret')
-
 auth = OAuth1(api_key, api_secret, token, token_secret)
 
-query = "python exclude%3Aretweets lang%3Aja"
+query = config.get('query', 'query')
 
 url = "https://api.twitter.com/1.1/search/tweets.json?&q=" + query
 params = {'count': 100, 'include_rts': False, 'result_type': 'recent', 'include_entities': True}
@@ -33,7 +32,7 @@ else:
         tm = time.localtime(rate['resources']['search']['/search/tweets']['reset'])
         print("Reset Time  {}:{}".format(tm.tm_hour, tm.tm_min))
 tweetdata = res.json()['statuses']
-# pprint.pprint(tweetdata[0])
+pprint.pprint(tweetdata[0])
 
 yesterday = datetime.date.today() - datetime.timedelta(1)
 maxid = 0
@@ -59,7 +58,8 @@ gettweets = len(tweetdata)
 # 除外ワード
 ngsource = config.get('ng', 'ngsource').split(",")
 ngword = config.get('ng', 'ngword').split(",")
-ngname = 'ython'
+ngscreenname = config.get('ng', 'ngscreenname').split(",")
+ngname = config.get('ng', 'ngname').split(",")
 # whitelist = ["pypi_updates"]
 
 # 除外候補選定
@@ -73,11 +73,15 @@ for i in tweetdata:
     for ngw in ngword:
         if ngw in i['text']:
             dlist.append(dcount)
+    for ngsn in ngscreenname:
+        if ngsn in i['user']['screen_name']:
+            dlist.append(dcount)
+    for ngn in ngname:
+        if ngn in i['user']['name']:
+            dlist.append(dcount)
     if i['source'].endswith('bot</a>') or i['source'].endswith('Bot</a>'):
         dlist.append(dcount)
     elif re.search(r"@[^\s]*python[^\s]*", i['text'], re.I):
-        dlist.append(dcount)
-    elif ngname in i['user']['screen_name']:
         dlist.append(dcount)
     dcount += 1
 
@@ -108,7 +112,7 @@ html_body = "<html><body><table>"
 for tw in yesterday_tweets:
     twtext = re.sub(r"(https?://t.co/[a-zA-Z0-9]*)", "<a href=\"\g<1>\">\g<1></a>", tw['text'])
     twtext = re.sub(r"@([a-zA-Z0-9_]*)", "@<a href=\"http://twitter.com/\g<1>/with_replies\">\g<1></a>", twtext)
-    twtext = re.sub(r"#([a-zA-Z0-9_]*)", "<a href=\"https://twitter.com/search?q=%23\g<1>\">#\g<1></a>", twtext)
+    twtext = re.sub(r"#([\S]*)", "<a href=\"https://twitter.com/search?q=%23\g<1>\">#\g<1></a>", twtext)
     twuser = "<a href=\"http://twitter.com/" + tw['user']['screen_name'] + "/with_replies\">" + tw['user']['screen_name'] + "</a>"
     # twdate = datetime.datetime.strptime(tw['created_at'], '%a %b %d %H:%M:%S +0000 %Y') + datetime.timedelta(hours=9)
     html_twdate = "<a href=\"http://twitter.com/{}/status/{}\">{}</a>".\
@@ -122,31 +126,31 @@ with open("C:\\Users\\owner\\Dropbox\\twiSearch\\" + str(yesterday) + ".html", m
 
 # feed(atom)の作成
 header = "<?xml version='1.0' encoding='UTF-8'?>\n"
-url = "http://aaa.jp/"
+url = "https://www.dropbox.com/home/twiSearch"
 feed_link = "<feed xmlns=\"http://www.w3.org/2005/Atom\">\n"
-title = "<title>twitter search feed</title>\n<link rel=\"self\" href=\"" + url + "feed.xml\">\n"
+title = "<title>twitter search feed</title>\n<link rel=\"self\" href=\"" + url + "feed.xml\"/>\n"
 author = "<author><name>John</name></author>\n"
 feed_id = "<id>tag:twi.py,2015:01</id>\n"
 
-file_name = os.listdir("./twi/")
+file_name = os.listdir("C:\\Users\\owner\\Dropbox\\twiSearch\\")
 sorted(file_name)
 entry = ""
 entry_date = ""
 for i in file_name:
-    try:
-        entry_link = url + i
+    if ".html" in i:
+        entry_link = url + "/" + i
         entry_title = i.replace(".html", "")
         entry_date = entry_title + "T16:00:00+09:00"
         entry_id = "tag:twi.py," + entry_title
         entry += "<entry>\n<title>" + entry_title + "</title>\n" + "<link href=\"" + entry_link + "\"/>\n" +\
                "<id>" + entry_id + "</id>\n" + "<publised>" + entry_date + "</publised>\n" + "</entry>\n"
-    except:
+    else:
         pass
 
 feed_updated = "<publised>" + entry_date + "</publised>\n"
 feed = header + feed_link + title + feed_updated + author + feed_id + entry + "</feed>"
 
-with open('./feed.xml', mode='w', encoding='UTF-8') as f:
+with open("C:\\Users\\owner\\Dropbox\\twiSearch\\feed.xml", mode='w', encoding='UTF-8') as f:
     f.write(feed)
 
 """
