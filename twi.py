@@ -9,7 +9,7 @@ import configparser
 from requests_oauthlib import OAuth1
 
 config = configparser.ConfigParser()
-config.read('twi.ini', encoding="UTF-8")
+config.read('roguelike.ini', encoding="UTF-8")
 
 api_key = config.get('api_key', 'api_key')
 api_secret = config.get('api_key', 'api_secret')
@@ -32,7 +32,7 @@ else:
         tm = time.localtime(rate['resources']['search']['/search/tweets']['reset'])
         print("Reset Time  {}:{}".format(tm.tm_hour, tm.tm_min))
 tweetdata = res.json()['statuses']
-pprint.pprint(tweetdata[0])
+# pprint.pprint(tweetdata[0])
 
 yesterday = datetime.date.today() - datetime.timedelta(1)
 maxid = 0
@@ -65,6 +65,7 @@ ngname = config.get('ng', 'ngname').split(",")
 # 除外候補選定
 dlist = []
 dcount = 0
+
 for i in tweetdata:
     # 除外候補
     for ngs in ngsource:
@@ -169,3 +170,6 @@ print("api limit {} / {}".format(rate['resources']['search']['/search/tweets']['
 tm = time.localtime(rate['resources']['search']['/search/tweets']['reset'])
 print("Reset Time  {}:{}".format(tm.tm_hour, tm.tm_min))
 print("-----------------------------------------\n")
+
+#subprocess.check_call("C:\Program Files (x86)\Dropbox\Client\Dropbox.exe")
+pid = os.startfile('"C:\Program Files (x86)\Dropbox\Client\Dropbox.exe"')
