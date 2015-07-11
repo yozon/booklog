@@ -111,7 +111,11 @@ for tw in tweetdata:
 yesterday_tweets.reverse()
 html_body = "<html><body><table>"
 for tw in yesterday_tweets:
-    twtext = re.sub(r"(https?://t.co/[a-zA-Z0-9]*)", "<a href=\"\g<1>\">\g<1></a>", tw['text'])
+    twtext = tw['text']
+    if tw['entities']['urls']:
+        for i in tw['entities']['urls']:
+            twtext = re.sub(i['url'], "<a href=\"{}\">{}</a>".format(i['expanded_url'], i['display_url']), twtext)
+    twtext = re.sub(r"(https?://t.co/[a-zA-Z0-9]*)", "<a href=\"\g<1>\">\g<1></a>", twtext)
     twtext = re.sub(r"@([a-zA-Z0-9_]*)", "@<a href=\"http://twitter.com/\g<1>/with_replies\">\g<1></a>", twtext)
     twtext = re.sub(r"#([\S]*)", "<a href=\"https://twitter.com/search?q=%23\g<1>\">#\g<1></a>", twtext)
     twuser = "<a href=\"http://twitter.com/" + tw['user']['screen_name'] + "/with_replies\">" + tw['user']['screen_name'] + "</a>"
@@ -139,16 +143,16 @@ entry = ""
 entry_date = ""
 for i in file_name:
     if ".html" in i:
-        entry_link = url + "/" + i
+        entry_link = url + "/"
         entry_title = i.replace(".html", "")
         entry_date = entry_title + "T16:00:00+09:00"
         entry_id = "tag:twi.py," + entry_title
         entry += "<entry>\n<title>" + entry_title + "</title>\n" + "<link href=\"" + entry_link + "\"/>\n" +\
-               "<id>" + entry_id + "</id>\n" + "<publised>" + entry_date + "</publised>\n" + "</entry>\n"
+               "<id>" + entry_id + "</id>\n" + "<updated>" + entry_date + "</updated>\n" + "</entry>\n"
     else:
         pass
 
-feed_updated = "<publised>" + entry_date + "</publised>\n"
+feed_updated = "<published>" + entry_date + "</published>\n"
 feed = header + feed_link + title + feed_updated + author + feed_id + entry + "</feed>"
 
 with open("C:\\Users\\owner\\Dropbox\\twiSearch\\feed.xml", mode='w', encoding='UTF-8') as f:
@@ -171,5 +175,4 @@ tm = time.localtime(rate['resources']['search']['/search/tweets']['reset'])
 print("Reset Time  {}:{}".format(tm.tm_hour, tm.tm_min))
 print("-----------------------------------------\n")
 
-#subprocess.check_call("C:\Program Files (x86)\Dropbox\Client\Dropbox.exe")
 pid = os.startfile('"C:\Program Files (x86)\Dropbox\Client\Dropbox.exe"')
