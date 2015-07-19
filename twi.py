@@ -122,8 +122,19 @@ for tw in yesterday_tweets:
     # twdate = datetime.datetime.strptime(tw['created_at'], '%a %b %d %H:%M:%S +0000 %Y') + datetime.timedelta(hours=9)
     html_twdate = "<a href=\"http://twitter.com/{}/status/{}\">{}</a>".\
         format(tw['user']['screen_name'], tw['id_str'], tw['created_at'].strftime('%m/%d %H:%M:%S'))
-    html_body += "<tr><td><img src=\"{}\"></td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>".\
-        format(tw['user']['profile_image_url'], twtext, twuser, html_twdate, tw['source'])
+    if 14 < tw['retweet_count'] + tw['favorite_count'] < 50:
+        html_body += "<tr><td><img src=\"{}\"></td><td>{}</td><td bgcolor=\"MistyRose\">{}</td><td>{}</td><td>{}</td></tr>".\
+                    format(tw['user']['profile_image_url'], twtext, twuser, html_twdate, tw['source'])
+    elif 49 < tw['retweet_count'] + tw['favorite_count'] < 100:
+        html_body += "<tr><td><img src=\"{}\"></td><td>{}</td><td bgcolor=\"LightSalmon\">{}</td><td>{}</td><td>{}</td></tr>".\
+                    format(tw['user']['profile_image_url'], twtext, twuser, html_twdate, tw['source'])
+    elif 99 < tw['retweet_count'] + tw['favorite_count']:
+        html_body += "<tr><td><img src=\"{}\"></td><td>{}</td><td bgcolor=\"Red\">{}</td><td>{}</td><td>{}</td></tr>".\
+                    format(tw['user']['profile_image_url'], twtext, twuser, html_twdate, tw['source'])
+    else:
+        html_body += "<tr><td><img src=\"{}\"></td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>".\
+                    format(tw['user']['profile_image_url'], twtext, twuser, html_twdate, tw['source'])
+
 html_body += "</table></body></html>"
 
 with open("C:\\Users\\owner\\Dropbox\\twiSearch\\" + str(yesterday) + ".html", mode='w', encoding='utf-8') as f:
@@ -133,7 +144,7 @@ with open("C:\\Users\\owner\\Dropbox\\twiSearch\\" + str(yesterday) + ".html", m
 header = "<?xml version='1.0' encoding='UTF-8'?>\n"
 url = "https://www.dropbox.com/home/twiSearch"
 feed_link = "<feed xmlns=\"http://www.w3.org/2005/Atom\">\n"
-title = "<title>twitter search feed</title>\n<link rel=\"self\" href=\"" + url + "feed.xml\"/>\n"
+title = "<title>twitter search feed</title>\n<link rel=\"self\" href=\"" + url + "/feed.xml\"/>\n"
 author = "<author><name>John</name></author>\n"
 feed_id = "<id>tag:twi.py,2015:01</id>\n"
 
@@ -143,26 +154,28 @@ entry = ""
 entry_date = ""
 for i in file_name:
     if ".html" in i:
-        entry_link = url + "/"
+        entry_link = url
         entry_title = i.replace(".html", "")
+        entry_content = i
         entry_date = entry_title + "T16:00:00+09:00"
-        entry_id = "tag:twi.py," + entry_title
-        entry += "<entry>\n<title>" + entry_title + "</title>\n" + "<link href=\"" + entry_link + "\"/>\n" +\
-               "<id>" + entry_id + "</id>\n" + "<updated>" + entry_date + "</updated>\n" + "</entry>\n"
+        entry_id = "tag:twi.py,2015:" + entry_title
+        entry += "<entry>\n<title>" + entry_title + "</title>\n" + "<content>" + entry_content + "</content>\n" +\
+                 "<link href=\"" + entry_link + "\"/>\n" + "<id>" + entry_id + "</id>\n" + \
+                 "<updated>" + entry_date + "</updated>\n" + "</entry>\n"
     else:
         pass
 
-feed_updated = "<published>" + entry_date + "</published>\n"
+feed_updated = "<updated>" + entry_date + "</updated>\n"
 feed = header + feed_link + title + feed_updated + author + feed_id + entry + "</feed>"
 
 with open("C:\\Users\\owner\\Dropbox\\twiSearch\\feed.xml", mode='w', encoding='UTF-8') as f:
     f.write(feed)
 
-"""
-# 確認用
-for tw in deltweets[:100]:
-    print(tw['text'] + "||", tw['user_screen_name'] + "||", re.sub(r"<[^>]*?>", "", tw['source']) + "||",
-          tw['created_at'])
+
+""" # 確認用
+for tw in yesterday_tweets:
+    print(tw['text'] + "||", tw['user']['screen_name'] + "||", re.sub(r"<[^>]*?>", "", tw['source']) + "||",
+          tw['created_at'], "||", tw['favorite_count'])
 """
 print("-----------------------------------------")
 print("get " + str(gettweets))
